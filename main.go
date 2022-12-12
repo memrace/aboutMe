@@ -1,6 +1,7 @@
 package main
 
 import (
+	"aboutMe/commands"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"os"
 )
@@ -18,17 +19,13 @@ func main() {
 			continue
 		}
 
-		go makeReply(update, bot)
+		go makeReply(&update, bot)
 	}
 
 }
 
-func makeReply(update tgbotapi.Update, bot *tgbotapi.BotAPI) {
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-
-	if _, err := bot.Send(msg); err != nil {
-		panic(err)
-	}
+func makeReply(update *tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	commands.MakeCommandHandler(bot, update).Process()
 }
 
 func makeUpdateChan(bot *tgbotapi.BotAPI) tgbotapi.UpdatesChannel {
