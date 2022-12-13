@@ -21,7 +21,7 @@ func getTextFromReadMe() string {
 		}
 	}(file)
 
-	data := []byte{64}
+	data := make([]byte, 64)
 	var text string
 	for {
 		n, err := file.Read(data)

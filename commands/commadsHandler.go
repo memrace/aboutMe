@@ -45,10 +45,10 @@ func workWithCommand(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 
 	switch command {
 	case readMe:
-		showReadMe(message.Chat.ID, bot)
+		go showReadMe(message.Chat.ID, bot)
 		return
 	case start:
-		showWelcome(message.Chat.ID, bot)
+		go showWelcome(message.Chat.ID, bot)
 		return
 	}
 }
