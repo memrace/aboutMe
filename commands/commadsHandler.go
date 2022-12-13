@@ -58,7 +58,7 @@ func workWithSimpleMessage(chatID int64, bot *tgbotapi.BotAPI) {
 }
 
 func showReadMe(chatID int64, bot *tgbotapi.BotAPI) {
-	sendMessage(bot, makeMessage(chatID, "ReadMe"))
+	sendMessage(bot, makeMessage(chatID, getTextFromReadMe()))
 }
 
 func showWelcome(chatID int64, bot *tgbotapi.BotAPI) {
