@@ -6,8 +6,8 @@ import (
 	"os"
 )
 
-func getTextFromReadMe() string {
-	file, err := os.Open("README.md")
+func getTextFromFile(fileName string) string {
+	file, err := os.Open(fileName)
 
 	if err != nil {
 		fmt.Println(err)

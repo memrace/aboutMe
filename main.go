@@ -15,15 +15,26 @@ func main() {
 
 	for update := range updates {
 
-		if update.Message == nil {
+		if update.Message == nil && update.CallbackQuery == nil {
 			continue
 		}
 
-		go makeReply(&update, bot)
+		if update.CallbackQuery != nil {
+			go makeReplyForCallback(&update, bot)
+			continue
+		}
+
+		if update.Message != nil {
+			go makeReply(&update, bot)
+			continue
+		}
+
 	}
 
 }
-
+func makeReplyForCallback(update *tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	commands.MakeCommandHandler(bot, update).ProcessCallback()
+}
 func makeReply(update *tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	commands.MakeCommandHandler(bot, update).Process()
 }
