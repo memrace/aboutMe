@@ -2,6 +2,7 @@ package commands
 
 import (
 	"errors"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -89,8 +90,13 @@ func workWithSimpleMessage(chatID int64, bot *tgbotapi.BotAPI) {
 
 func showFaqMenu(chatID int64, bot *tgbotapi.BotAPI, updateMessage *tgbotapi.Message) {
 	message := tgbotapi.NewMessage(chatID, updateMessage.Text)
-	message.ReplyMarkup = createFAQMenu(3)
-	sendMessage(bot, message)
+	if menu, err := createFAQMenu(3, faqMenu[:]); err != nil {
+		println(err)
+	} else {
+		message.ReplyMarkup = menu
+		sendMessage(bot, message)
+	}
+
 }
 
 func showReadMe(chatID int64, bot *tgbotapi.BotAPI) {
