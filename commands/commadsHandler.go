@@ -36,7 +36,7 @@ func (handler *commandHandler) ProcessCallback() {
 	callbackQuery := handler.update.CallbackQuery
 	var btn *faqButton
 	for _, b := range faqMenu {
-		if b.file == callbackQuery.Data {
+		if b.command == callbackQuery.Data {
 			btn = &b
 			break
 		}
@@ -56,9 +56,7 @@ func (handler *commandHandler) ProcessCallback() {
 }
 
 func (handler *commandHandler) Process() {
-
 	message := handler.update.Message
-
 	if message.IsCommand() {
 		workWithCommand(handler.bot, handler.update)
 	} else {
@@ -68,41 +66,28 @@ func (handler *commandHandler) Process() {
 
 func workWithCommand(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 	message := update.Message
-
 	command := message.Command()
-
 	switch command {
 	case readMe:
-		go showReadMe(message.Chat.ID, bot)
+		go sendMessage(bot, makeMessage(message.Chat.ID, getTextFromFile("README.md")))
 		return
 	case start:
-		go showWelcome(message.Chat.ID, bot)
+		go sendMessage(bot, makeMessage(message.Chat.ID, "Приветствую! \nПредлагаю вызвать команду readme для первичного ознакомления ;)"))
 		return
 	case faq:
-		go showFaqMenu(message.Chat.ID, bot, message)
+		go func() {
+			message := tgbotapi.NewMessage(message.Chat.ID, message.Text)
+			if menu, err := createFAQMenu(3, faqMenu[:]); err != nil {
+				println(err)
+			} else {
+				message.ReplyMarkup = menu
+				sendMessage(bot, message)
+			}
+		}()
 		return
 	}
 }
 
 func workWithSimpleMessage(chatID int64, bot *tgbotapi.BotAPI) {
 	sendMessage(bot, makeMessage(chatID, "¯\\_(ツ)_/¯"))
-}
-
-func showFaqMenu(chatID int64, bot *tgbotapi.BotAPI, updateMessage *tgbotapi.Message) {
-	message := tgbotapi.NewMessage(chatID, updateMessage.Text)
-	if menu, err := createFAQMenu(3, faqMenu[:]); err != nil {
-		println(err)
-	} else {
-		message.ReplyMarkup = menu
-		sendMessage(bot, message)
-	}
-
-}
-
-func showReadMe(chatID int64, bot *tgbotapi.BotAPI) {
-	sendMessage(bot, makeMessage(chatID, getTextFromFile("README.md")))
-}
-
-func showWelcome(chatID int64, bot *tgbotapi.BotAPI) {
-	sendMessage(bot, makeMessage(chatID, "Приветствую! \nПредлагаю вызвать команду readme для первичного ознакомления ;)"))
 }

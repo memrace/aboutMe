@@ -7,23 +7,23 @@ import (
 var testMenu = [5]faqButton{
 	{
 		display: "1",
-		file:    "1",
+		command: "1",
 	},
 	{
 		display: "2",
-		file:    "2",
+		command: "2",
 	},
 	{
 		display: "3",
-		file:    "3",
+		command: "3",
 	},
 	{
 		display: "4",
-		file:    "4",
+		command: "4",
 	},
 	{
 		display: "5",
-		file:    "5",
+		command: "5",
 	},
 }
 
@@ -57,17 +57,22 @@ var testSplits = [5]testSplitData{
 			1,
 		},
 	},
-	{
-		split:      0,
-		expectRows: []int{},
-	},
-	{
-		split:      -1,
-		expectRows: []int{},
-	},
 }
 
 func TestCreateFaqMenu(t *testing.T) {
+	_, errBelowZero := createFAQMenu(-1, []faqButton{})
+	_, errZero := createFAQMenu(0, []faqButton{})
+	if errBelowZero == nil || errZero == nil {
+		t.FailNow()
+	}
+	if errBelowZero.Error() != "split is below a zero" {
+		t.Fatal(errBelowZero)
+	}
+
+	if errZero.Error() != "split is a zero" {
+		t.Fatal(errZero)
+	}
+
 	for _, splitData := range testSplits {
 		inlineKeyboard, err := createFAQMenu(splitData.split, testMenu[:])
 		if err != nil && len(splitData.expectRows) != 0 && splitData.split != -1 {

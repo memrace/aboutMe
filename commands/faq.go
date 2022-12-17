@@ -8,33 +8,55 @@ import (
 
 type faqButton struct {
 	display string
-	file    string
+	command string
 }
 
 var basePath = "files/faq/"
 
-var faqMenu = [3]faqButton{
+var faqMenu = [...]faqButton{
 	{
 		display: "Обо мне",
-		file:    basePath + "aboutMe.txt",
+		command: basePath + "aboutMe.txt",
 	},
 	{
 		display: "Проф. опыт",
-		file:    basePath + "profExp.txt",
+		command: basePath + "profExp.txt",
 	},
 	{
 		display: "О проектах",
-		file:    basePath + "aboutMyProjects.txt",
+		command: basePath + "aboutMyProjects.txt",
+	},
+	{
+		display: "О команде",
+		command: basePath + "team.txt"},
+	{
+		display: "Контакты",
+		command: basePath + "contacts.txt",
+	},
+	{
+		display: "Прошлый стек технологий",
+		command: basePath + "prevStack.txt",
+	},
+	{
+		display: "С чем есть опыт в Go",
+		command: basePath + "goExp.txt",
+	},
+	{
+		display: "Почему Go?",
+		command: basePath + "whyGo.txt",
 	},
 }
 
 func createFAQMenu(split int, menu []faqButton) (tgbotapi.InlineKeyboardMarkup, error) {
 	if split < 0 {
-		return tgbotapi.NewInlineKeyboardMarkup(), errors.New("value is below zero")
+		return tgbotapi.NewInlineKeyboardMarkup(), errors.New("split is below a zero")
+	}
+	if split == 0 {
+		return tgbotapi.NewInlineKeyboardMarkup(), errors.New("split is a zero")
 	}
 	fMenu := make([]tgbotapi.InlineKeyboardButton, len(menu))
 	for index, btn := range menu {
-		fMenu[index] = tgbotapi.NewInlineKeyboardButtonData(btn.display, btn.file)
+		fMenu[index] = tgbotapi.NewInlineKeyboardButtonData(btn.display, btn.command)
 	}
 	replyKeyboardMarkup := tgbotapi.NewInlineKeyboardMarkup()
 	threshold := len(fMenu) / split
