@@ -89,6 +89,9 @@ func (handler *commandHandler) Process(ctx context.Context) {
 				sendMessage(handler.bot, makeMessage(chatId, "Я отправил сообщение создателю\nКак только получу ответ вернусь к вам!"))
 				sendMessage(handler.bot, makeMessage(creatorChatId, "Сообщение от "+"\nпользователя: "+dialog.FirstName+" "+dialog.LastName+" "+dialog.UserName+"\n"+reply))
 
+				_, err = client.Delete(ctx, &service.DialogId{
+					Id: userId,
+				})
 				if err != nil {
 					sendErrorMessage(handler.bot, chatId, err)
 				}
