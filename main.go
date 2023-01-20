@@ -1,14 +1,20 @@
 package main
 
 import (
+	service "aboutMe/api"
 	"aboutMe/commands"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"context"
 	"os"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 const botKeyApi = "ABOUT_ME_BOT_API_KEY"
 
 func main() {
+
+	service := service.MakeService()
+
 	bot := makeBot(true)
 	updates := makeUpdateChan(bot)
 	for update := range updates {
@@ -16,11 +22,11 @@ func main() {
 			continue
 		}
 		if update.CallbackQuery != nil {
-			go commands.MakeCommandHandler(bot, &update).ProcessCallback()
+			go commands.MakeCommandHandler(&service, bot, &update).ProcessCallback()
 			continue
 		}
 		if update.Message != nil {
-			go commands.MakeCommandHandler(bot, &update).Process()
+			go commands.MakeCommandHandler(&service, bot, &update).Process(context.Background())
 			continue
 		}
 	}

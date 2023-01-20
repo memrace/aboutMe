@@ -1,12 +1,13 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"unicode/utf8"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
-	"aboutMe/dialogs"
+	service "aboutMe/api"
 )
 
 const creatorChatId int64 = 282568630
@@ -20,23 +21,26 @@ const faq = "faq"
 const contactMe = "contactme"
 
 func MakeCommandHandler(
+	service *service.ApiService,
 	bot *tgbotapi.BotAPI,
 	update *tgbotapi.Update,
 ) CommandHandler {
 	return &commandHandler{
-		bot:    bot,
-		update: update,
+		Service: service,
+		bot:     bot,
+		update:  update,
 	}
 }
 
 type CommandHandler interface {
-	Process()
+	Process(ctx context.Context)
 	ProcessCallback()
 }
 
 type commandHandler struct {
-	bot    *tgbotapi.BotAPI
-	update *tgbotapi.Update
+	Service *service.ApiService
+	bot     *tgbotapi.BotAPI
+	update  *tgbotapi.Update
 }
 
 func (handler *commandHandler) ProcessCallback() {
@@ -62,29 +66,56 @@ func (handler *commandHandler) ProcessCallback() {
 
 }
 
-func (handler *commandHandler) Process() {
+func (handler *commandHandler) Process(ctx context.Context) {
 	message := handler.update.Message
 
-	if dialog := dialogs.GetDialog(handler.update.Message.From.ID); dialog != nil && !dialog.Replied {
-		if reply := message.Text; utf8.RuneCountInString(reply) > 0 {
-			dialog.Reply = reply
-			dialog.Replied = true
-			dialogs.SaveDialog(dialog)
-			sendMessage(handler.bot, makeMessage(message.Chat.ID, "Я отправил сообщение хозяину\nКак только получу ответ вернусь к вам!"))
-			sendMessage(handler.bot, makeMessage(creatorChatId, "Сообщение от "+"\nпользователя: "+dialog.FirstName+" "+dialog.LastName+"\n"+dialog.Reply))
-		} else {
-			sendMessage(handler.bot, makeMessage(message.Chat.ID, "Bad reply :)"))
-		}
+	chatId := message.Chat.ID
+	userId := handler.update.Message.From.ID
+	client := handler.Service.Client
+
+	dialog, err := client.Get(ctx, &service.GetDialog{
+		UserId: userId,
+	})
+	if err != nil {
+		sendErrorMessage(handler.bot, chatId, err)
 	} else {
-		if message.IsCommand() {
-			workWithCommand(handler.bot, handler.update)
+		if dialog != nil && !dialog.Replied {
+			if reply := message.Text; utf8.RuneCountInString(reply) > 0 {
+
+				_, err := client.SetReply(ctx, &service.UserReply{
+					UserId: userId,
+					Text:   reply,
+				})
+				if err != nil {
+					sendErrorMessage(handler.bot, chatId, err)
+				} else {
+					sendMessage(handler.bot, makeMessage(chatId, "Я отправил сообщение создателю\nКак только получу ответ вернусь к вам!"))
+					sendMessage(handler.bot, makeMessage(creatorChatId, "Сообщение от "+"\nпользователя: "+dialog.FirstName+" "+dialog.LastName+"\n"+dialog.Reply))
+					_, err := client.Delete(ctx, &service.DialogId{Id: userId})
+					if err != nil {
+						sendErrorMessage(handler.bot, chatId, err)
+					}
+				}
+
+			} else {
+				sendMessage(handler.bot, makeMessage(chatId, "Bad reply :)"))
+			}
 		} else {
-			workWithSimpleMessage(message.Chat.ID, handler.bot)
+			if message.IsCommand() {
+				workWithCommand(ctx, handler.bot, handler.update, client)
+			} else {
+				workWithSimpleMessage(chatId, handler.bot)
+			}
 		}
 	}
 }
 
-func workWithCommand(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
+func sendErrorMessage(bot *tgbotapi.BotAPI, chatId int64, err error) {
+	sendMessage(bot, makeMessage(chatId, "Ошибка :( "+err.Error()))
+	print(err)
+}
+
+func workWithCommand(ctx context.Context, bot *tgbotapi.BotAPI, update *tgbotapi.Update, client service.DialogServiceClient) {
 	message := update.Message
 	command := message.Command()
 	switch command {
@@ -109,14 +140,19 @@ func workWithCommand(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 	case contactMe:
 		go func() {
 			user := message.From
-			dialogs.SaveDialog(&dialogs.Dialog{
-				UserID:    user.ID,
+			_, err := client.Create(ctx, &service.CreateDialog{
+				Id:        user.ID,
 				UserName:  user.UserName,
 				FirstName: user.FirstName,
 				LastName:  user.LastName,
-				ChatID:    message.Chat.ID,
+				ChatId:    message.Chat.ID,
 			})
-			sendMessage(bot, makeMessage(message.Chat.ID, contactMeResponse))
+			if err != nil {
+				sendErrorMessage(bot, message.Chat.ID, err)
+			} else {
+				sendMessage(bot, makeMessage(message.Chat.ID, contactMeResponse))
+			}
+
 		}()
 		return
 	default:
