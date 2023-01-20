@@ -73,39 +73,35 @@ func (handler *commandHandler) Process(ctx context.Context) {
 	userId := handler.update.Message.From.ID
 	client := handler.Service.Client
 
-	dialog, err := client.Get(ctx, &service.GetDialog{
+	dialog, _ := client.Get(ctx, &service.GetDialog{
 		UserId: userId,
 	})
-	if err != nil {
-		sendErrorMessage(handler.bot, chatId, err)
-	} else {
-		if dialog != nil && !dialog.Replied {
-			if reply := message.Text; utf8.RuneCountInString(reply) > 0 {
+	if dialog != nil && !dialog.Replied {
+		if reply := message.Text; utf8.RuneCountInString(reply) > 0 {
 
-				_, err := client.SetReply(ctx, &service.UserReply{
-					UserId: userId,
-					Text:   reply,
-				})
+			_, err := client.SetReply(ctx, &service.UserReply{
+				UserId: userId,
+				Text:   reply,
+			})
+			if err != nil {
+				sendErrorMessage(handler.bot, chatId, err)
+			} else {
+				sendMessage(handler.bot, makeMessage(chatId, "Я отправил сообщение создателю\nКак только получу ответ вернусь к вам!"))
+				sendMessage(handler.bot, makeMessage(creatorChatId, "Сообщение от "+"\nпользователя: "+dialog.FirstName+" "+dialog.LastName+" "+dialog.UserName+"\n"+reply))
+
 				if err != nil {
 					sendErrorMessage(handler.bot, chatId, err)
-				} else {
-					sendMessage(handler.bot, makeMessage(chatId, "Я отправил сообщение создателю\nКак только получу ответ вернусь к вам!"))
-					sendMessage(handler.bot, makeMessage(creatorChatId, "Сообщение от "+"\nпользователя: "+dialog.FirstName+" "+dialog.LastName+"\n"+dialog.Reply))
-					_, err := client.Delete(ctx, &service.DialogId{Id: userId})
-					if err != nil {
-						sendErrorMessage(handler.bot, chatId, err)
-					}
 				}
+			}
 
-			} else {
-				sendMessage(handler.bot, makeMessage(chatId, "Bad reply :)"))
-			}
 		} else {
-			if message.IsCommand() {
-				workWithCommand(ctx, handler.bot, handler.update, client)
-			} else {
-				workWithSimpleMessage(chatId, handler.bot)
-			}
+			sendMessage(handler.bot, makeMessage(chatId, "Bad reply :)"))
+		}
+	} else {
+		if message.IsCommand() {
+			workWithCommand(ctx, handler.bot, handler.update, client)
+		} else {
+			workWithSimpleMessage(chatId, handler.bot)
 		}
 	}
 }
